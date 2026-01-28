@@ -1,3 +1,14 @@
 .DS_Store
+Thumbs.db
 node_modules/
+*.tmp
+*.bak
 *.log
+.vscode/
+.idea/
+*.swp
+*.mp4
+*.mov
+*.avi
+*.env
+*.local
