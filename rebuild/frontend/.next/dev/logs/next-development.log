@@ -1,0 +1,401 @@
+[00:00:01.844] Server  WARN    ⚠ Turbopack's filesystem cache has been deleted because we previously detected an internal error in Turbopack. Builds or page loads may be slower as a result.
+[00:00:02.094] Server  LOG     ✓ Ready in 1621ms
+[00:00:35.555] Server  LOG     ○ Compiling / ...
+[00:00:38.761] Server  ERROR   ⨯ ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:7:1
+Module not found: Can't resolve '../components/ui/Footer'
+   5 | // Example imports from your structure
+   6 | import Header from "../components/ui/Header";
+>  7 | import Footer from "../components/ui/Footer";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   8 | import { Garden } from "../lib/Garden";
+   9 | import { Plot } from "../lib/Plot";
+  10 |
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+
+./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:6:1
+Module not found: Can't resolve '../components/ui/Header'
+  4 |
+  5 | // Example imports from your structure
+> 6 | import Header from "../components/ui/Header";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Footer from "../components/ui/Footer";
+  8 | import { Garden } from "../lib/Garden";
+  9 | import { Plot } from "../lib/Plot";
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+
+./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:8:1
+Module not found: Can't resolve '../lib/Garden'
+   6 | import Header from "../components/ui/Header";
+   7 | import Footer from "../components/ui/Footer";
+>  8 | import { Garden } from "../lib/Garden";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   9 | import { Plot } from "../lib/Plot";
+  10 |
+  11 | export const metadata = {
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+
+./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:9:1
+Module not found: Can't resolve '../lib/Plot'
+   7 | import Footer from "../components/ui/Footer";
+   8 | import { Garden } from "../lib/Garden";
+>  9 | import { Plot } from "../lib/Plot";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  10 |
+  11 | export const metadata = {
+  12 |   title: "City Garden Platform 🌱",
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:00:41.772] Server  LOG     ○ Compiling /_error ...
+[00:03:24.433] Server  ERROR   ⨯ ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:7:1
+Module not found: Can't resolve '../components/ui/Footer'
+   5 | // Example imports from your structure
+   6 | import Header from "../components/ui/Header";
+>  7 | import Footer from "../components/ui/Footer";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   8 | import { Garden } from "../lib/Garden";
+   9 | import { Plot } from "../lib/Plot";
+  10 |
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+
+./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:6:1
+Module not found: Can't resolve '../components/ui/Header'
+  4 |
+  5 | // Example imports from your structure
+> 6 | import Header from "../components/ui/Header";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Footer from "../components/ui/Footer";
+  8 | import { Garden } from "../lib/Garden";
+  9 | import { Plot } from "../lib/Plot";
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+
+./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:8:1
+Module not found: Can't resolve '../lib/Garden'
+   6 | import Header from "../components/ui/Header";
+   7 | import Footer from "../components/ui/Footer";
+>  8 | import { Garden } from "../lib/Garden";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   9 | import { Plot } from "../lib/Plot";
+  10 |
+  11 | export const metadata = {
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+
+./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:9:1
+Module not found: Can't resolve '../lib/Plot'
+   7 | import Footer from "../components/ui/Footer";
+   8 | import { Garden } from "../lib/Garden";
+>  9 | import { Plot } from "../lib/Plot";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  10 |
+  11 | export const metadata = {
+  12 |   title: "City Garden Platform 🌱",
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:03:30.553] Browser ERROR   uncaughtError: Error: ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:7:1
+Module not found: Can't resolve '../components/ui/Footer'
+   5 | // Example imports from your structure
+   6 | import Header from "../components/ui/Header";
+>  7 | import Footer from "../components/ui/Footer";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   8 | import { Garden } from "../lib/Garden";
+   9 | import { Plot } from "../lib/Plot";
+  10 |
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:03:30.797] Browser ERROR   ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:7:1
+Module not found: Can't resolve '../components/ui/Footer'
+   5 | // Example imports from your structure
+   6 | import Header from "../components/ui/Header";
+>  7 | import Footer from "../components/ui/Footer";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   8 | import { Garden } from "../lib/Garden";
+   9 | import { Plot } from "../lib/Plot";
+  10 |
+
+https://nextjs.org/docs/messages/module-not-found
+[00:03:30.798] Browser ERROR   ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:6:1
+Module not found: Can't resolve '../components/ui/Header'
+  4 |
+  5 | // Example imports from your structure
+> 6 | import Header from "../components/ui/Header";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Footer from "../components/ui/Footer";
+  8 | import { Garden } from "../lib/Garden";
+  9 | import { Plot } from "../lib/Plot";
+
+https://nextjs.org/docs/messages/module-not-found
+[00:03:30.798] Browser ERROR   ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:8:1
+Module not found: Can't resolve '../lib/Garden'
+   6 | import Header from "../components/ui/Header";
+   7 | import Footer from "../components/ui/Footer";
+>  8 | import { Garden } from "../lib/Garden";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   9 | import { Plot } from "../lib/Plot";
+  10 |
+  11 | export const metadata = {
+
+https://nextjs.org/docs/messages/module-not-found
+[00:03:30.798] Browser ERROR   ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:9:1
+Module not found: Can't resolve '../lib/Plot'
+   7 | import Footer from "../components/ui/Footer";
+   8 | import { Garden } from "../lib/Garden";
+>  9 | import { Plot } from "../lib/Plot";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  10 |
+  11 | export const metadata = {
+  12 |   title: "City Garden Platform 🌱",
+
+https://nextjs.org/docs/messages/module-not-found
+[00:03:31.168] Browser ERROR   ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:7:1
+Module not found: Can't resolve '../components/ui/Footer'
+   5 | // Example imports from your structure
+   6 | import Header from "../components/ui/Header";
+>  7 | import Footer from "../components/ui/Footer";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   8 | import { Garden } from "../lib/Garden";
+   9 | import { Plot } from "../lib/Plot";
+  10 |
+
+https://nextjs.org/docs/messages/module-not-found
+[00:03:31.168] Browser ERROR   ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:6:1
+Module not found: Can't resolve '../components/ui/Header'
+  4 |
+  5 | // Example imports from your structure
+> 6 | import Header from "../components/ui/Header";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Footer from "../components/ui/Footer";
+  8 | import { Garden } from "../lib/Garden";
+  9 | import { Plot } from "../lib/Plot";
+
+https://nextjs.org/docs/messages/module-not-found
+[00:03:31.168] Browser ERROR   ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:8:1
+Module not found: Can't resolve '../lib/Garden'
+   6 | import Header from "../components/ui/Header";
+   7 | import Footer from "../components/ui/Footer";
+>  8 | import { Garden } from "../lib/Garden";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   9 | import { Plot } from "../lib/Plot";
+  10 |
+  11 | export const metadata = {
+
+https://nextjs.org/docs/messages/module-not-found
+[00:03:31.168] Browser ERROR   ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:9:1
+Module not found: Can't resolve '../lib/Plot'
+   7 | import Footer from "../components/ui/Footer";
+   8 | import { Garden } from "../lib/Garden";
+>  9 | import { Plot } from "../lib/Plot";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  10 |
+  11 | export const metadata = {
+  12 |   title: "City Garden Platform 🌱",
+
+https://nextjs.org/docs/messages/module-not-found
+[00:06:48.558] Server  ERROR   ⨯ ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:7:1
+Module not found: Can't resolve '../components/ui/Footer'
+   5 | // Example imports from your structure
+   6 | import Header from "../components/ui/Header";
+>  7 | import Footer from "../components/ui/Footer";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   8 | import { Garden } from "../lib/Garden";
+   9 | import { Plot } from "../lib/Plot";
+  10 |
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+
+./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:6:1
+Module not found: Can't resolve '../components/ui/Header'
+  4 |
+  5 | // Example imports from your structure
+> 6 | import Header from "../components/ui/Header";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Footer from "../components/ui/Footer";
+  8 | import { Garden } from "../lib/Garden";
+  9 | import { Plot } from "../lib/Plot";
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+
+./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:8:1
+Module not found: Can't resolve '../lib/Garden'
+   6 | import Header from "../components/ui/Header";
+   7 | import Footer from "../components/ui/Footer";
+>  8 | import { Garden } from "../lib/Garden";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   9 | import { Plot } from "../lib/Plot";
+  10 |
+  11 | export const metadata = {
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+
+./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:9:1
+Module not found: Can't resolve '../lib/Plot'
+   7 | import Footer from "../components/ui/Footer";
+   8 | import { Garden } from "../lib/Garden";
+>  9 | import { Plot } from "../lib/Plot";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  10 |
+  11 | export const metadata = {
+  12 |   title: "City Garden Platform 🌱",
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:06:51.386] Browser ERROR   uncaughtError: Error: ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:7:1
+Module not found: Can't resolve '../components/ui/Footer'
+   5 | // Example imports from your structure
+   6 | import Header from "../components/ui/Header";
+>  7 | import Footer from "../components/ui/Footer";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   8 | import { Garden } from "../lib/Garden";
+   9 | import { Plot } from "../lib/Plot";
+  10 |
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:06:51.572] Browser ERROR   ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:7:1
+Module not found: Can't resolve '../components/ui/Footer'
+   5 | // Example imports from your structure
+   6 | import Header from "../components/ui/Header";
+>  7 | import Footer from "../components/ui/Footer";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   8 | import { Garden } from "../lib/Garden";
+   9 | import { Plot } from "../lib/Plot";
+  10 |
+
+https://nextjs.org/docs/messages/module-not-found
+[00:06:51.572] Browser ERROR   ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:6:1
+Module not found: Can't resolve '../components/ui/Header'
+  4 |
+  5 | // Example imports from your structure
+> 6 | import Header from "../components/ui/Header";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Footer from "../components/ui/Footer";
+  8 | import { Garden } from "../lib/Garden";
+  9 | import { Plot } from "../lib/Plot";
+
+https://nextjs.org/docs/messages/module-not-found
+[00:06:51.572] Browser ERROR   ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:8:1
+Module not found: Can't resolve '../lib/Garden'
+   6 | import Header from "../components/ui/Header";
+   7 | import Footer from "../components/ui/Footer";
+>  8 | import { Garden } from "../lib/Garden";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   9 | import { Plot } from "../lib/Plot";
+  10 |
+  11 | export const metadata = {
+
+https://nextjs.org/docs/messages/module-not-found
+[00:06:51.572] Browser ERROR   ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:9:1
+Module not found: Can't resolve '../lib/Plot'
+   7 | import Footer from "../components/ui/Footer";
+   8 | import { Garden } from "../lib/Garden";
+>  9 | import { Plot } from "../lib/Plot";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  10 |
+  11 | export const metadata = {
+  12 |   title: "City Garden Platform 🌱",
+
+https://nextjs.org/docs/messages/module-not-found
+[00:06:51.572] Browser ERROR   ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:7:1
+Module not found: Can't resolve '../components/ui/Footer'
+   5 | // Example imports from your structure
+   6 | import Header from "../components/ui/Header";
+>  7 | import Footer from "../components/ui/Footer";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   8 | import { Garden } from "../lib/Garden";
+   9 | import { Plot } from "../lib/Plot";
+  10 |
+
+https://nextjs.org/docs/messages/module-not-found
+[00:06:51.572] Browser ERROR   ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:6:1
+Module not found: Can't resolve '../components/ui/Header'
+  4 |
+  5 | // Example imports from your structure
+> 6 | import Header from "../components/ui/Header";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import Footer from "../components/ui/Footer";
+  8 | import { Garden } from "../lib/Garden";
+  9 | import { Plot } from "../lib/Plot";
+
+https://nextjs.org/docs/messages/module-not-found
+[00:06:51.572] Browser ERROR   ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:8:1
+Module not found: Can't resolve '../lib/Garden'
+   6 | import Header from "../components/ui/Header";
+   7 | import Footer from "../components/ui/Footer";
+>  8 | import { Garden } from "../lib/Garden";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   9 | import { Plot } from "../lib/Plot";
+  10 |
+  11 | export const metadata = {
+
+https://nextjs.org/docs/messages/module-not-found
+[00:06:51.572] Browser ERROR   ./Documents/City-Garden-Platform/rebuild/frontend/app/layout.tsx:9:1
+Module not found: Can't resolve '../lib/Plot'
+   7 | import Footer from "../components/ui/Footer";
+   8 | import { Garden } from "../lib/Garden";
+>  9 | import { Plot } from "../lib/Plot";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  10 |
+  11 | export const metadata = {
+  12 |   title: "City Garden Platform 🌱",
+
+https://nextjs.org/docs/messages/module-not-found
+[00:10:26.630] Server  LOG     ✓ Compiled in 977ms
+[00:10:27.803] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
