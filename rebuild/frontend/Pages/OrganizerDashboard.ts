@@ -1,39 +1,22 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/router";
 import Layout from "@/components/layout/Layout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import {
-  Users,
-  LayoutGrid,
-  Wrench,
-  Calendar,
-  UserPlus,
-  Trash2,
-  CheckCircle,
-  XCircle,
-} from "lucide-react";
+import { LayoutGrid, Calendar, Wrench, Users, Plus, Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Input, Button } from "@/components/ui";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toast";
 
 import StatsCard from "@/components/dashboard/StatsCard";
 import EmptyState from "@/components/ui/EmptyState";
 
-/* ================================
-   Helpers
-================================ */
+const ALLOWED_ROLES = ["member", "organizer", "admin"];
 
 const StatusBadge = ({ status }: { status: string }) => (
   <Badge
@@ -49,85 +32,57 @@ const StatusBadge = ({ status }: { status: string }) => (
   </Badge>
 );
 
-const exportCSV = (rows: any[], filename: string) => {
-  if (!rows.length) return toast.error("Nothing to export");
-
-  const headers = Object.keys(rows[0]);
-  const csv = [
-    headers.join(","),
-    ...rows.map(r =>
-      headers.map(h => JSON.stringify(r[h] ?? "")).join(",")
-    ),
-  ].join("\n");
-
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-};
-
-/* ================================
-   Reusable UI
-================================ */
-
-const StatsHeader = ({ members, plots, tools, events, requests }: any) => (
-  <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-    <StatsCard title="Members" value={members} icon={Users} />
-    <StatsCard title="Plots" value={plots} icon={LayoutGrid} />
-    <StatsCard title="Tools" value={tools} icon={Wrench} />
-    <StatsCard title="Events" value={events} icon={Calendar} />
-    <StatsCard title="Requests" value={requests} icon={UserPlus} />
-  </div>
-);
-
-const CrudTable = ({
-  rows,
-  columns,
-  actions,
-}: {
-  rows: any[];
-  columns: any[];
-  actions?: (row: any) => React.ReactNode;
-}) => (
-  <Table>
-    <TableHeader>
-      <TableRow>
-        {columns.map((c: any) => (
-          <TableHead key={c.key}>{c.label}</TableHead>
-        ))}
-        {actions && <TableHead />}
-      </TableRow>
-    </TableHeader>
-    <TableBody>
-      {rows.map(row => (
-        <TableRow key={row.id}>
-          {columns.map((c: any) => (
-            <TableCell key={c.key}>{c.render(row)}</TableCell>
-          ))}
-          {actions && <TableCell>{actions(row)}</TableCell>}
-        </TableRow>
-      ))}
-    </TableBody>
-  </Table>
-);
-
-/* ================================
-   Main
-================================ */
-
-export default function OrganizerDashboard() {
+export default function MemberDashboardPlatinum() {
+  const router = useRouter();
   const qc = useQueryClient();
+
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState("members");
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [activeTab, setActiveTab] = useState("plots");
   const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newToolName, setNewToolName] = useState("");
 
   useEffect(() => {
-    base44.auth.me().then(setUser);
-  }, []);
+    base44.auth
+      .me()
+      .then((u: any) => {
+        if (!u) {
+          router.replace("/login");
+          return;
+        }
+        if (!ALLOWED_ROLES.includes(u.role)) {
+          router.replace("/unauthorized");
+          return;
+        }
+        setUser(u);
+      })
+      .finally(() => setCheckingAuth(false));
+  }, [router]);
+
+  if (checkingAuth) {
+    return (
+      <Layout title="Loading…">
+        <div className="py-24 text-center text-muted-foreground">
+          Checking access…
+        </div>
+      </Layout>
+    );
+  }
 
   const gardenId = user?.garden;
+
+  if (!gardenId) {
+    return (
+      <Layout title="Garden">
+        <EmptyState
+          icon={LayoutGrid}
+          title="No garden yet"
+          description="Join a garden to see plots, tools, and events."
+        />
+      </Layout>
+    );
+  }
 
   const members = useQuery({
     queryKey: ["members", gardenId],
@@ -141,169 +96,180 @@ export default function OrganizerDashboard() {
     enabled: !!gardenId,
   });
 
+  const tools = useQuery({
+    queryKey: ["tools", gardenId],
+    queryFn: () => base44.entities.Tool.filter({ garden: gardenId }),
+    enabled: !!gardenId,
+  });
+
   const events = useQuery({
     queryKey: ["events", gardenId],
     queryFn: () => base44.entities.Event.filter({ garden: gardenId }, "-date"),
     enabled: !!gardenId,
   });
 
-  const requests = useQuery({
-    queryKey: ["requests", gardenId],
-    queryFn: () =>
-      base44.entities.GardenJoinRequest.filter({ garden: gardenId }),
-    enabled: !!gardenId,
-  });
-
-  const deletePlot = useMutation({
-    mutationFn: (id: string) => base44.entities.Plot.delete(id),
+  const addToolMutation = useMutation({
+    mutationFn: (name: string) => base44.entities.Tool.create({ garden: gardenId, name }),
     onSuccess: () => {
-      qc.invalidateQueries(["plots", gardenId]);
-      toast.success("Plot deleted");
+      qc.invalidateQueries(["tools", gardenId]);
+      toast.success("Tool added");
+      setDialogOpen(false);
+      setNewToolName("");
     },
   });
 
-  const updateRequest = useMutation({
-    mutationFn: ({ id, status }: any) =>
-      base44.entities.GardenJoinRequest.update(id, { status }),
-    onSuccess: () => {
-      qc.invalidateQueries(["requests", gardenId]);
-      toast.success("Request updated");
-    },
-  });
+  const filteredPlots = useMemo(
+    () => plots.data?.filter((p: any) => String(p.plot_number).includes(search)) || [],
+    [plots.data, search]
+  );
 
-  if (!gardenId) {
-    return (
-      <Layout title="Garden Admin">
-        <EmptyState
-          icon={LayoutGrid}
-          title="No garden assigned"
-          description="You must be an organizer to access this dashboard."
-        />
-      </Layout>
-    );
-  }
-
-  const filteredMembers =
-    members.data?.filter((m: any) =>
-      m.full_name.toLowerCase().includes(search.toLowerCase())
-    ) || [];
+  const isLoadingAny = members.isLoading || plots.isLoading || tools.isLoading || events.isLoading;
 
   return (
-    <Layout title="Garden Admin">
-      <StatsHeader
-        members={members.data?.length || 0}
-        plots={plots.data?.length || 0}
-        tools={0}
-        events={events.data?.length || 0}
-        requests={
-          requests.data?.filter((r: any) => r.status === "pending").length || 0
-        }
-      />
+    <Layout title={`Welcome back, ${user?.full_name?.split(" ")[0] || "Gardener"}`}>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatsCard title="Members" value={members.data?.length || 0} icon={Users} />
+        <StatsCard title="Plots" value={plots.data?.length || 0} icon={LayoutGrid} />
+        <StatsCard title="Tools" value={tools.data?.length || 0} icon={Wrench} />
+        <StatsCard title="Events" value={events.data?.length || 0} icon={Calendar} />
+      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="members">Members</TabsTrigger>
           <TabsTrigger value="plots">Plots</TabsTrigger>
+          <TabsTrigger value="tools">Tools</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
-          <TabsTrigger value="requests">Requests</TabsTrigger>
+          <TabsTrigger value="members">Members</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="members">
-          <Input
-            placeholder="Search members…"
-            className="mb-4"
-            onChange={e => setSearch(e.target.value)}
-          />
-          <CrudTable
-            rows={filteredMembers}
-            columns={[
-              { key: "name", label: "Name", render: (r: any) => r.full_name },
-              { key: "email", label: "Email", render: (r: any) => r.email },
-            ]}
-          />
-        </TabsContent>
-
+        {/* PLOTS */}
         <TabsContent value="plots">
-          <CrudTable
-            rows={plots.data || []}
-            columns={[
-              {
-                key: "plot",
-                label: "Plot #",
-                render: (r: any) => r.plot_number,
-              },
-            ]}
-            actions={r => (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => deletePlot.mutate(r.id)}
-              >
-                <Trash2 className="w-4 h-4 text-red-600" />
-              </Button>
-            )}
-          />
+          <Input placeholder="Search plot number…" className="mb-4" onChange={e => setSearch(e.target.value)} />
+          {isLoadingAny ? (
+            <div className="py-12 text-center text-muted-foreground">Loading plots…</div>
+          ) : filteredPlots.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Plot #</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredPlots.map((p: any) => (
+                  <TableRow key={p.id}>
+                    <TableCell>{p.plot_number}</TableCell>
+                    <TableCell>{p.status || "Available"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <EmptyState icon={LayoutGrid} title="No plots" description="Plots will appear once created." />
+          )}
         </TabsContent>
 
+        {/* TOOLS */}
+        <TabsContent value="tools">
+          <div className="flex justify-end mb-2">
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Plus className="w-4 h-4 mr-2" /> Add Tool
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Tool</DialogTitle>
+                </DialogHeader>
+                <Input placeholder="Tool name" value={newToolName} onChange={e => setNewToolName(e.target.value)} />
+                <DialogFooter>
+                  <Button
+                    onClick={() => addToolMutation.mutate(newToolName)}
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    Save
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+          {isLoadingAny ? (
+            <div className="py-12 text-center text-muted-foreground">Loading tools…</div>
+          ) : tools.data?.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Condition</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tools.data.map((t: any) => (
+                  <TableRow key={t.id}>
+                    <TableCell>{t.name}</TableCell>
+                    <TableCell>{t.condition || "Good"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <EmptyState icon={Wrench} title="No tools" description="Tools will appear once added." />
+          )}
+        </TabsContent>
+
+        {/* EVENTS */}
         <TabsContent value="events">
-          <CrudTable
-            rows={events.data || []}
-            columns={[
-              { key: "title", label: "Title", render: (r: any) => r.title },
-              {
-                key: "date",
-                label: "Date",
-                render: (r: any) => format(new Date(r.date), "PPP"),
-              },
-            ]}
-          />
+          {isLoadingAny ? (
+            <div className="py-12 text-center text-muted-foreground">Loading events…</div>
+          ) : events.data?.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Event</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {events.data.map((e: any) => (
+                  <TableRow key={e.id}>
+                    <TableCell>{e.title}</TableCell>
+                    <TableCell>{format(new Date(e.date), "PPP")}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <EmptyState icon={Calendar} title="No events" description="Upcoming events will show here." />
+          )}
         </TabsContent>
 
-        <TabsContent value="requests">
-          <CrudTable
-            rows={requests.data || []}
-            columns={[
-              {
-                key: "user",
-                label: "User",
-                render: (r: any) => r.user.full_name,
-              },
-              {
-                key: "status",
-                label: "Status",
-                render: (r: any) => <StatusBadge status={r.status} />,
-              },
-            ]}
-            actions={r => (
-              <div className="flex gap-2">
-                <Button
-                  onClick={() =>
-                    updateRequest.mutate({ id: r.id, status: "approved" })
-                  }
-                >
-                  <CheckCircle className="w-4 h-4 text-emerald-600" />
-                </Button>
-                <Button
-                  onClick={() =>
-                    updateRequest.mutate({ id: r.id, status: "rejected" })
-                  }
-                >
-                  <XCircle className="w-4 h-4 text-rose-600" />
-                </Button>
-              </div>
-            )}
-          />
+        {/* MEMBERS */}
+        <TabsContent value="members">
+          {isLoadingAny ? (
+            <div className="py-12 text-center text-muted-foreground">Loading members…</div>
+          ) : members.data?.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {members.data.map((m: any) => (
+                  <TableRow key={m.id}>
+                    <TableCell>{m.full_name}</TableCell>
+                    <TableCell>{m.email}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <EmptyState icon={Users} title="No members" description="Members will appear once they join." />
+          )}
         </TabsContent>
       </Tabs>
-
-      <div className="mt-8">
-        <Button
-          variant="outline"
-          onClick={() => exportCSV(plots.data || [], "plots.csv")}
-        >
-          Export Plots CSV
-        </Button>
-      </div>
     </Layout>
   );
 }
