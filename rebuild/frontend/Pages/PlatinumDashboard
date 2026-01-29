@@ -1,0 +1,502 @@
+import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/router";
+import Layout from "@/components/layout/Layout";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import {
+  Users,
+  LayoutGrid,
+  Wrench,
+  Calendar,
+  UserPlus,
+  Trash2,
+  CheckCircle,
+  XCircle,
+  Plus,
+  Pencil,
+} from "lucide-react";
+import { format } from "date-fns";
+import { motion } from "framer-motion";
+
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "@/components/ui/toast";
+import EmptyState from "@/components/ui/EmptyState";
+import StatsCard from "@/components/dashboard/StatsCard";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+
+/* ---------------------- Config ---------------------- */
+
+const ROLES = {
+  MEMBER: "member",
+  ORGANIZER: "organizer",
+  ADMIN: "admin",
+};
+
+const ALLOWED_ROLES = [ROLES.MEMBER, ROLES.ORGANIZER, ROLES.ADMIN];
+
+/* ---------------------- Helpers ---------------------- */
+
+const StatusBadge = ({ status }: { status: string }) => (
+  <Badge
+    className={
+      status === "pending"
+        ? "bg-amber-100 text-amber-700"
+        : status === "approved"
+        ? "bg-emerald-100 text-emerald-700"
+        : "bg-rose-100 text-rose-700"
+    }
+  >
+    {status}
+  </Badge>
+);
+
+const exportCSV = (rows: any[], filename: string) => {
+  if (!rows.length) return toast.error("Nothing to export");
+  const headers = Object.keys(rows[0]);
+  const csv = [
+    headers.join(","),
+    ...rows.map((r) => headers.map((h) => JSON.stringify(r[h] ?? "")).join(",")),
+  ].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+};
+
+/* ---------------------- Platinum Dashboard ---------------------- */
+
+export default function PlatinumDashboard() {
+  const router = useRouter();
+  const qc = useQueryClient();
+
+  const [user, setUser] = useState<any>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [activeTab, setActiveTab] = useState("plots");
+  const [search, setSearch] = useState("");
+  const [modal, setModal] = useState<{ type: string; data: any; open: boolean } | null>(null);
+
+  /* ---------------------- Auth Guard ---------------------- */
+  useEffect(() => {
+    base44.auth
+      .me()
+      .then((u: any) => {
+        if (!u) return router.replace("/login");
+        if (!ALLOWED_ROLES.includes(u.role)) return router.replace("/unauthorized");
+        setUser(u);
+      })
+      .finally(() => setCheckingAuth(false));
+  }, [router]);
+
+  if (checkingAuth)
+    return (
+      <Layout title="Loading…">
+        <div className="py-24 text-center text-muted-foreground">Checking access…</div>
+      </Layout>
+    );
+
+  const isOrganizer = [ROLES.ORGANIZER, ROLES.ADMIN].includes(user.role);
+  const gardenId = user?.garden;
+
+  if (!gardenId)
+    return (
+      <Layout title="Garden">
+        <EmptyState
+          icon={LayoutGrid}
+          title="No garden assigned"
+          description="You must join or create a garden to access this dashboard."
+        />
+      </Layout>
+    );
+
+  /* ---------------------- Queries ---------------------- */
+  const members = useQuery({
+    queryKey: ["members", gardenId],
+    queryFn: () => base44.entities.User.filter({ garden: gardenId }),
+    enabled: !!gardenId,
+  });
+
+  const plots = useQuery({
+    queryKey: ["plots", gardenId],
+    queryFn: () => base44.entities.Plot.filter({ garden: gardenId }),
+    enabled: !!gardenId,
+  });
+
+  const tools = useQuery({
+    queryKey: ["tools", gardenId],
+    queryFn: () => base44.entities.Tool.filter({ garden: gardenId }),
+    enabled: !!gardenId,
+  });
+
+  const events = useQuery({
+    queryKey: ["events", gardenId],
+    queryFn: () => base44.entities.Event.filter({ garden: gardenId }, "-date"),
+    enabled: !!gardenId,
+  });
+
+  const requests = useQuery({
+    queryKey: ["requests", gardenId],
+    queryFn: () => base44.entities.GardenJoinRequest.filter({ garden: gardenId }),
+    enabled: !!gardenId && isOrganizer,
+  });
+
+  /* ---------------------- Mutations ---------------------- */
+  const mutation = useMutation({
+    mutationFn: ({ type, action, data }: any) => {
+      if (type === "plot") {
+        if (action === "delete") return base44.entities.Plot.delete(data.id);
+        if (action === "create") return base44.entities.Plot.create(data);
+        if (action === "update") return base44.entities.Plot.update(data.id, data);
+      }
+      if (type === "tool") {
+        if (action === "delete") return base44.entities.Tool.delete(data.id);
+        if (action === "create") return base44.entities.Tool.create(data);
+        if (action === "update") return base44.entities.Tool.update(data.id, data);
+      }
+      if (type === "event") {
+        if (action === "delete") return base44.entities.Event.delete(data.id);
+        if (action === "create") return base44.entities.Event.create(data);
+        if (action === "update") return base44.entities.Event.update(data.id, data);
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries(["plots", gardenId]);
+      qc.invalidateQueries(["tools", gardenId]);
+      qc.invalidateQueries(["events", gardenId]);
+      setModal(null);
+      toast.success("Updated successfully!");
+    },
+  });
+
+  const requestMutation = useMutation({
+    mutationFn: ({ id, status }: any) => base44.entities.GardenJoinRequest.update(id, { status }),
+    onSuccess: () => {
+      qc.invalidateQueries(["requests", gardenId]);
+      toast.success("Request updated");
+    },
+  });
+
+  /* ---------------------- Derived Data ---------------------- */
+  const filteredMembers = useMemo(
+    () => members.data?.filter((m: any) => m.full_name.toLowerCase().includes(search.toLowerCase())) || [],
+    [members.data, search]
+  );
+
+  const filteredPlots = useMemo(
+    () => plots.data?.filter((p: any) => String(p.plot_number).includes(search)) || [],
+    [plots.data, search]
+  );
+
+  const filteredTools = useMemo(
+    () => tools.data?.filter((t: any) => t.name.toLowerCase().includes(search.toLowerCase())) || [],
+    [tools.data, search]
+  );
+
+  const filteredEvents = useMemo(
+    () => events.data?.filter((e: any) => e.title.toLowerCase().includes(search.toLowerCase())) || [],
+    [events.data, search]
+  );
+
+  const isLoadingAny = members.isLoading || plots.isLoading || tools.isLoading || events.isLoading || requests.isLoading;
+
+  /* ---------------------- UI ---------------------- */
+  return (
+    <Layout title={`Welcome back, ${user?.full_name?.split(" ")[0] || "Gardener"}`}>
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <StatsCard title="Members" value={members.data?.length || 0} icon={Users} />
+        <StatsCard title="Plots" value={plots.data?.length || 0} icon={LayoutGrid} />
+        <StatsCard title="Tools" value={tools.data?.length || 0} icon={Wrench} />
+        <StatsCard title="Events" value={events.data?.length || 0} icon={Calendar} />
+        {isOrganizer && <StatsCard title="Requests" value={requests.data?.filter((r: any) => r.status === "pending").length || 0} icon={UserPlus} />}
+      </div>
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="plots">Plots</TabsTrigger>
+          <TabsTrigger value="tools">Tools</TabsTrigger>
+          <TabsTrigger value="events">Events</TabsTrigger>
+          <TabsTrigger value="members">Members</TabsTrigger>
+          {isOrganizer && <TabsTrigger value="requests">Requests</TabsTrigger>}
+        </TabsList>
+
+        {/* ---------------- PLOTS ---------------- */}
+        <TabsContent value="plots">
+          {isOrganizer && (
+            <div className="flex justify-end mb-4 gap-2">
+              <Button onClick={() => setModal({ type: "plot", data: { garden: gardenId }, open: true })}>
+                <Plus className="w-4 h-4 mr-2" /> Add Plot
+              </Button>
+              <Button variant="outline" onClick={() => exportCSV(plots.data || [], "plots.csv")}>
+                Export CSV
+              </Button>
+            </div>
+          )}
+          {isLoadingAny ? (
+            <div className="py-12 text-center text-muted-foreground">Loading plots…</div>
+          ) : filteredPlots.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Plot #</TableHead>
+                  <TableHead>Status</TableHead>
+                  {isOrganizer && <TableHead>Actions</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredPlots.map((p: any) => (
+                  <motion.tr key={p.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                    <TableCell>{p.plot_number}</TableCell>
+                    <TableCell>{p.status || "Available"}</TableCell>
+                    {isOrganizer && (
+                      <TableCell className="flex gap-2">
+                        <Button size="sm" onClick={() => setModal({ type: "plot", data: p, open: true })}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => mutation.mutate({ type: "plot", action: "delete", data: p })}>
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </Button>
+                      </TableCell>
+                    )}
+                  </motion.tr>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <EmptyState icon={LayoutGrid} title="No plots" description="Plots will appear once added." />
+          )}
+        </TabsContent>
+
+        {/* ---------------- TOOLS ---------------- */}
+        <TabsContent value="tools">
+          {isOrganizer && (
+            <div className="flex justify-end mb-4 gap-2">
+              <Button onClick={() => setModal({ type: "tool", data: { garden: gardenId }, open: true })}>
+                <Plus className="w-4 h-4 mr-2" /> Add Tool
+              </Button>
+            </div>
+          )}
+          {isLoadingAny ? (
+            <div className="py-12 text-center text-muted-foreground">Loading tools…</div>
+          ) : filteredTools.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Condition</TableHead>
+                  {isOrganizer && <TableHead>Actions</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTools.map((t: any) => (
+                  <motion.tr key={t.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                    <TableCell>{t.name}</TableCell>
+                    <TableCell>{t.condition || "Good"}</TableCell>
+                    {isOrganizer && (
+                      <TableCell className="flex gap-2">
+                        <Button size="sm" onClick={() => setModal({ type: "tool", data: t, open: true })}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => mutation.mutate({ type: "tool", action: "delete", data: t })}>
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </Button>
+                      </TableCell>
+                    )}
+                  </motion.tr>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <EmptyState icon={Wrench} title="No tools" description="Tools will appear once added." />
+          )}
+        </TabsContent>
+
+        {/* ---------------- EVENTS ---------------- */}
+        <TabsContent value="events">
+          {isOrganizer && (
+            <div className="flex justify-end mb-4 gap-2">
+              <Button onClick={() => setModal({ type: "event", data: { garden: gardenId }, open: true })}>
+                <Plus className="w-4 h-4 mr-2" /> Add Event
+              </Button>
+            </div>
+          )}
+          {isLoadingAny ? (
+            <div className="py-12 text-center text-muted-foreground">Loading events…</div>
+          ) : filteredEvents.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Event</TableHead>
+                  <TableHead>Date</TableHead>
+                  {isOrganizer && <TableHead>Actions</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredEvents.map((e: any) => (
+                  <motion.tr key={e.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                    <TableCell>{e.title}</TableCell>
+                    <TableCell>{format(new Date(e.date), "PPP")}</TableCell>
+                    {isOrganizer && (
+                      <TableCell className="flex gap-2">
+                        <Button size="sm" onClick={() => setModal({ type: "event", data: e, open: true })}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => mutation.mutate({ type: "event", action: "delete", data: e })}>
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </Button>
+                      </TableCell>
+                    )}
+                  </motion.tr>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <EmptyState icon={Calendar} title="No events" description="Events will appear once added." />
+          )}
+        </TabsContent>
+
+        {/* ---------------- MEMBERS ---------------- */}
+        <TabsContent value="members">
+          <Input placeholder="Search members…" className="mb-4" onChange={(e) => setSearch(e.target.value)} />
+          {isLoadingAny ? (
+            <div className="py-12 text-center text-muted-foreground">Loading members…</div>
+          ) : filteredMembers.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredMembers.map((m: any) => (
+                  <motion.tr key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                    <TableCell>{m.full_name}</TableCell>
+                    <TableCell>{m.email}</TableCell>
+                  </motion.tr>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <EmptyState icon={Users} title="No members" description="Members will appear once they join." />
+          )}
+        </TabsContent>
+
+        {/* ---------------- REQUESTS ---------------- */}
+        {isOrganizer && (
+          <TabsContent value="requests">
+            {isLoadingAny ? (
+              <div className="py-12 text-center text-muted-foreground">Loading requests…</div>
+            ) : requests.data?.length ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {requests.data.map((r: any) => (
+                    <TableRow key={r.id}>
+                      <TableCell>{r.user.full_name}</TableCell>
+                      <TableCell>
+                        <StatusBadge status={r.status} />
+                      </TableCell>
+                      <TableCell className="flex gap-2">
+                        <Button onClick={() => requestMutation.mutate({ id: r.id, status: "approved" })}>
+                          <CheckCircle className="w-4 h-4 text-emerald-600" />
+                        </Button>
+                        <Button onClick={() => requestMutation.mutate({ id: r.id, status: "rejected" })}>
+                          <XCircle className="w-4 h-4 text-rose-600" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <EmptyState icon={UserPlus} title="No requests" description="Pending requests will appear here." />
+            )}
+          </TabsContent>
+        )}
+      </Tabs>
+
+      {/* ---------------- Add/Edit Modal ---------------- */}
+      <Dialog open={modal?.open} onOpenChange={(open) => !open && setModal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{modal?.data?.id ? `Edit ${modal.type}` : `Add New ${modal.type}`}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {modal?.type === "plot" && (
+              <>
+                <Input
+                  placeholder="Plot Number"
+                  value={modal?.data?.plot_number || ""}
+                  onChange={(e) => setModal({ ...modal, data: { ...modal.data, plot_number: e.target.value } })}
+                />
+                <Input
+                  placeholder="Status"
+                  value={modal?.data?.status || ""}
+                  onChange={(e) => setModal({ ...modal, data: { ...modal.data, status: e.target.value } })}
+                />
+              </>
+            )}
+            {modal?.type === "tool" && (
+              <>
+                <Input
+                  placeholder="Tool Name"
+                  value={modal?.data?.name || ""}
+                  onChange={(e) => setModal({ ...modal, data: { ...modal.data, name: e.target.value } })}
+                />
+                <Input
+                  placeholder="Condition"
+                  value={modal?.data?.condition || ""}
+                  onChange={(e) => setModal({ ...modal, data: { ...modal.data, condition: e.target.value } })}
+                />
+              </>
+            )}
+            {modal?.type === "event" && (
+              <>
+                <Input
+                  placeholder="Event Title"
+                  value={modal?.data?.title || ""}
+                  onChange={(e) => setModal({ ...modal, data: { ...modal.data, title: e.target.value } })}
+                />
+                <Input
+                  type="date"
+                  placeholder="Date"
+                  value={modal?.data?.date ? modal.data.date.split("T")[0] : ""}
+                  onChange={(e) => setModal({ ...modal, data: { ...modal.data, date: e.target.value } })}
+                />
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() =>
+                mutation.mutate({ type: modal?.type, action: modal?.data?.id ? "update" : "create", data: modal.data })
+              }
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Layout>
+  );
+}
