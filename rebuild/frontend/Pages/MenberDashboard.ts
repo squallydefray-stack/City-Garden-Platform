@@ -1,41 +1,47 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/router";
 import Layout from "@/components/layout/Layout";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { LayoutGrid, Calendar, Wrench, Users } from "lucide-react";
+import { LayoutGrid, Calendar, Wrench, Users, Plus, Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Input, Button } from "@/components/ui";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "@/components/ui/toast";
 
 import StatsCard from "@/components/dashboard/StatsCard";
 import EmptyState from "@/components/ui/EmptyState";
 
-/* =========================================================
-   Member Dashboard — Production Ready
-   Guards • Permissions • Empty States • Skeletons
-========================================================= */
-
 const ALLOWED_ROLES = ["member", "organizer", "admin"];
 
-export default function MemberDashboard() {
+const StatusBadge = ({ status }: { status: string }) => (
+  <Badge
+    className={
+      status === "pending"
+        ? "bg-amber-100 text-amber-700"
+        : status === "approved"
+        ? "bg-emerald-100 text-emerald-700"
+        : "bg-rose-100 text-rose-700"
+    }
+  >
+    {status}
+  </Badge>
+);
+
+export default function MemberDashboardPlatinum() {
   const router = useRouter();
+  const qc = useQueryClient();
 
   const [user, setUser] = useState<any>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [activeTab, setActiveTab] = useState("plots");
   const [search, setSearch] = useState("");
-
-  /* ---------------- AUTH + ROLE GUARD ---------------- */
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newToolName, setNewToolName] = useState("");
 
   useEffect(() => {
     base44.auth
@@ -45,12 +51,10 @@ export default function MemberDashboard() {
           router.replace("/login");
           return;
         }
-
         if (!ALLOWED_ROLES.includes(u.role)) {
           router.replace("/unauthorized");
           return;
         }
-
         setUser(u);
       })
       .finally(() => setCheckingAuth(false));
@@ -68,7 +72,17 @@ export default function MemberDashboard() {
 
   const gardenId = user?.garden;
 
-  /* ---------------- DATA ---------------- */
+  if (!gardenId) {
+    return (
+      <Layout title="Garden">
+        <EmptyState
+          icon={LayoutGrid}
+          title="No garden yet"
+          description="Join a garden to see plots, tools, and events."
+        />
+      </Layout>
+    );
+  }
 
   const members = useQuery({
     queryKey: ["members", gardenId],
@@ -94,42 +108,25 @@ export default function MemberDashboard() {
     enabled: !!gardenId,
   });
 
-  /* ---------------- NO GARDEN ---------------- */
-
-  if (!gardenId) {
-    return (
-      <Layout title="Garden">
-        <EmptyState
-          icon={LayoutGrid}
-          title="No garden yet"
-          description="Join a garden to see plots, tools, and events."
-        />
-      </Layout>
-    );
-  }
-
-  /* ---------------- DERIVED ---------------- */
+  const addToolMutation = useMutation({
+    mutationFn: (name: string) => base44.entities.Tool.create({ garden: gardenId, name }),
+    onSuccess: () => {
+      qc.invalidateQueries(["tools", gardenId]);
+      toast.success("Tool added");
+      setDialogOpen(false);
+      setNewToolName("");
+    },
+  });
 
   const filteredPlots = useMemo(
-    () =>
-      plots.data?.filter((p: any) =>
-        String(p.plot_number).includes(search)
-      ) || [],
+    () => plots.data?.filter((p: any) => String(p.plot_number).includes(search)) || [],
     [plots.data, search]
   );
 
-  const isLoadingAny =
-    members.isLoading || plots.isLoading || tools.isLoading || events.isLoading;
-
-  /* ---------------- UI ---------------- */
+  const isLoadingAny = members.isLoading || plots.isLoading || tools.isLoading || events.isLoading;
 
   return (
-    <Layout
-      title={`Welcome back, ${
-        user?.full_name?.split(" ")[0] || "Gardener"
-      }`}
-    >
-      {/* Stats */}
+    <Layout title={`Welcome back, ${user?.full_name?.split(" ")[0] || "Gardener"}`}>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatsCard title="Members" value={members.data?.length || 0} icon={Users} />
         <StatsCard title="Plots" value={plots.data?.length || 0} icon={LayoutGrid} />
@@ -145,14 +142,9 @@ export default function MemberDashboard() {
           <TabsTrigger value="members">Members</TabsTrigger>
         </TabsList>
 
-        {/* ---------------- PLOTS ---------------- */}
+        {/* PLOTS */}
         <TabsContent value="plots">
-          <Input
-            placeholder="Search plot number…"
-            className="mb-4"
-            onChange={(e) => setSearch(e.target.value)}
-          />
-
+          <Input placeholder="Search plot number…" className="mb-4" onChange={e => setSearch(e.target.value)} />
           {isLoadingAny ? (
             <div className="py-12 text-center text-muted-foreground">Loading plots…</div>
           ) : filteredPlots.length ? (
@@ -173,16 +165,35 @@ export default function MemberDashboard() {
               </TableBody>
             </Table>
           ) : (
-            <EmptyState
-              icon={LayoutGrid}
-              title="No plots"
-              description="Plots will appear here once created."
-            />
+            <EmptyState icon={LayoutGrid} title="No plots" description="Plots will appear once created." />
           )}
         </TabsContent>
 
-        {/* ---------------- TOOLS ---------------- */}
+        {/* TOOLS */}
         <TabsContent value="tools">
+          <div className="flex justify-end mb-2">
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Plus className="w-4 h-4 mr-2" /> Add Tool
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Tool</DialogTitle>
+                </DialogHeader>
+                <Input placeholder="Tool name" value={newToolName} onChange={e => setNewToolName(e.target.value)} />
+                <DialogFooter>
+                  <Button
+                    onClick={() => addToolMutation.mutate(newToolName)}
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    Save
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
           {isLoadingAny ? (
             <div className="py-12 text-center text-muted-foreground">Loading tools…</div>
           ) : tools.data?.length ? (
@@ -203,15 +214,11 @@ export default function MemberDashboard() {
               </TableBody>
             </Table>
           ) : (
-            <EmptyState
-              icon={Wrench}
-              title="No tools"
-              description="Tools will appear here once added."
-            />
+            <EmptyState icon={Wrench} title="No tools" description="Tools will appear once added." />
           )}
         </TabsContent>
 
-        {/* ---------------- EVENTS ---------------- */}
+        {/* EVENTS */}
         <TabsContent value="events">
           {isLoadingAny ? (
             <div className="py-12 text-center text-muted-foreground">Loading events…</div>
@@ -233,15 +240,11 @@ export default function MemberDashboard() {
               </TableBody>
             </Table>
           ) : (
-            <EmptyState
-              icon={Calendar}
-              title="No events"
-              description="Upcoming events will show here."
-            />
+            <EmptyState icon={Calendar} title="No events" description="Upcoming events will show here." />
           )}
         </TabsContent>
 
-        {/* ---------------- MEMBERS ---------------- */}
+        {/* MEMBERS */}
         <TabsContent value="members">
           {isLoadingAny ? (
             <div className="py-12 text-center text-muted-foreground">Loading members…</div>
@@ -250,22 +253,20 @@ export default function MemberDashboard() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {members.data.map((m: any) => (
                   <TableRow key={m.id}>
                     <TableCell>{m.full_name}</TableCell>
+                    <TableCell>{m.email}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           ) : (
-            <EmptyState
-              icon={Users}
-              title="No members"
-              description="Members will appear once they join."
-            />
+            <EmptyState icon={Users} title="No members" description="Members will appear once they join." />
           )}
         </TabsContent>
       </Tabs>
